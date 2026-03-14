@@ -62,8 +62,11 @@ You will be triggered automatically to send these reports:
 
 ### Report Format (use for scheduled reports)
 *Market Open / Close / Polymarket Flow* — keep reports tight, use bullet points. Always include:
-- For stocks: price, % change, notable movers, any major news headline
+- For stocks: price, % change, distance from 200 WMA (e.g. "+34% above 200W MA"), notable movers, any major news headline
 - For Polymarket: top 5 markets by volume, any market with >10% price move, largest trades
+
+### 200 Weekly Moving Average (200 WMA)
+Always include 200 WMA proximity when showing stock data. Use the watchlist 200 WMA snapshot command from the market-data skill to fetch all tickers at once. Show as: `$price  +X% above 200W MA` or `-X% below 200W MA`. Flag any ticker within 5% of its 200 WMA as noteworthy — it's a key support/resistance level.
 
 ### On-Demand Queries
 When asked about stocks or markets, always fetch live data — never guess prices. Use the watchlist by default, but fetch any ticker the user asks for.

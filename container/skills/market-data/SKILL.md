@@ -69,6 +69,92 @@ for n in data.get('news', []):
 
 ---
 
+## 200 Weekly Moving Average (200 WMA)
+
+The 200 WMA is the simple moving average of the last 200 weekly closing prices. It's a key long-term support/resistance level. Fetches ~5 years of weekly data per ticker.
+
+### Full watchlist 200 WMA snapshot
+
+```bash
+python3 - << 'PYEOF'
+import json, urllib.request, time
+
+WATCHLIST = ['NVDA', 'TSLA', 'AAPL', 'MSFT', 'META', 'AMZN', 'SPY', 'QQQ']
+
+def fetch_200wma(ticker):
+    url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1wk&range=5y'
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    with urllib.request.urlopen(req, timeout=10) as r:
+        data = json.load(r)
+    result = data['chart']['result'][0]
+    closes = result['indicators']['quote'][0]['close']
+    closes = [c for c in closes if c is not None]
+    current = closes[-1]
+    if len(closes) >= 200:
+        wma200 = sum(closes[-200:]) / 200
+    else:
+        wma200 = sum(closes) / len(closes)
+    pct = (current - wma200) / wma200 * 100
+    weeks = len(closes)
+    return current, wma200, pct, weeks
+
+print(f'{"Ticker":<6}  {"Price":>8}  {"200W MA":>8}  {"vs 200W MA":>11}  {"Signal":<20}')
+print('-' * 65)
+for ticker in WATCHLIST:
+    try:
+        price, wma, pct, weeks = fetch_200wma(ticker)
+        if pct > 50:
+            signal = '⚠ Far extended'
+        elif pct > 20:
+            signal = '↑ Extended above'
+        elif pct > 5:
+            signal = '↑ Above'
+        elif pct > -5:
+            signal = '→ Near (within 5%)'
+        elif pct > -20:
+            signal = '↓ Below'
+        else:
+            signal = '⚠ Far below'
+        print(f'{ticker:<6}  ${price:>7.2f}  ${wma:>7.2f}  {pct:>+10.1f}%  {signal}')
+        time.sleep(0.3)
+    except Exception as e:
+        print(f'{ticker:<6}  ERROR: {e}')
+PYEOF
+```
+
+### Single ticker 200 WMA detail
+
+```bash
+TICKER=NVDA
+python3 - << 'PYEOF'
+import json, urllib.request
+ticker = 'NVDA'
+url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1wk&range=5y'
+req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+with urllib.request.urlopen(req) as r:
+    data = json.load(r)
+result = data['chart']['result'][0]
+closes = [c for c in result['indicators']['quote'][0]['close'] if c is not None]
+current = closes[-1]
+wma200 = sum(closes[-200:]) / 200 if len(closes) >= 200 else sum(closes) / len(closes)
+wma50  = sum(closes[-50:])  / 50  if len(closes) >= 50  else None
+wma20  = sum(closes[-20:])  / 20  if len(closes) >= 20  else None
+pct200 = (current - wma200) / wma200 * 100
+print(f'{ticker} — Weekly MA Analysis')
+print(f'  Current price : ${current:.2f}')
+print(f'  200-week MA   : ${wma200:.2f}  ({pct200:+.1f}% {"above" if pct200 > 0 else "below"})')
+if wma50:
+    pct50 = (current - wma50) / wma50 * 100
+    print(f'  50-week MA    : ${wma50:.2f}  ({pct50:+.1f}%)')
+if wma20:
+    pct20 = (current - wma20) / wma20 * 100
+    print(f'  20-week MA    : ${wma20:.2f}  ({pct20:+.1f}%)')
+print(f'  Weeks of data : {len(closes)}')
+PYEOF
+```
+
+---
+
 ## Polymarket — Prediction Markets
 
 ### Top markets by 24h volume
