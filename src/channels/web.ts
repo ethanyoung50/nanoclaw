@@ -164,8 +164,14 @@ ${
         .then(msgs => msgs.forEach(m => appendMsg(m.sender_name, m.content, m.timestamp, !!m.is_from_me)));
     };
 
-    ws.onclose = () => {
+    ws.onclose = (e) => {
       document.querySelector('#header .dot').style.background = '#f87171';
+      if (e.code === 4001) {
+        // Session token expired (server restarted) — clear and re-login
+        sessionStorage.removeItem('wc_token');
+        location.reload();
+        return;
+      }
       setTimeout(connectWs, 3000);
     };
 
