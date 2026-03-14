@@ -101,7 +101,9 @@ function buildHtml(hasPassword: boolean): string {
 </style>
 </head>
 <body>
-${hasPassword ? `
+${
+  hasPassword
+    ? `
 <div id="login">
   <form id="loginForm">
     <h2>NanoClaw</h2>
@@ -109,7 +111,9 @@ ${hasPassword ? `
     <button type="submit">Sign in</button>
     <div class="error" id="loginErr"></div>
   </form>
-</div>` : ''}
+</div>`
+    : ''
+}
 <div id="app">
   <div id="header"><div class="dot"></div><h1>Andy</h1></div>
   <div id="messages"></div>
@@ -305,7 +309,9 @@ export class WebChannel implements Channel {
           return;
         }
         try {
-          const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const since = new Date(
+            Date.now() - 24 * 60 * 60 * 1000,
+          ).toISOString();
           const messages = getMessagesSince(WEB_JID, since, 'Andy', 50);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(messages));
@@ -339,15 +345,28 @@ export class WebChannel implements Channel {
       }
 
       this.clients.add(ws);
-      logger.info({ clientCount: this.clients.size }, 'Web chat client connected');
+      logger.info(
+        { clientCount: this.clients.size },
+        'Web chat client connected',
+      );
 
       // Notify the channel so the chat is "alive"
-      this.opts.onChatMetadata(WEB_JID, new Date().toISOString(), 'Web Chat', 'web', false);
+      this.opts.onChatMetadata(
+        WEB_JID,
+        new Date().toISOString(),
+        'Web Chat',
+        'web',
+        false,
+      );
 
       ws.on('message', (data) => {
         try {
           const msg = JSON.parse(data.toString());
-          if (msg.type === 'message' && typeof msg.content === 'string' && msg.content.trim()) {
+          if (
+            msg.type === 'message' &&
+            typeof msg.content === 'string' &&
+            msg.content.trim()
+          ) {
             const id = crypto.randomUUID();
             const timestamp = new Date().toISOString();
             this.opts.onMessage(WEB_JID, {
@@ -368,7 +387,10 @@ export class WebChannel implements Channel {
 
       ws.on('close', () => {
         this.clients.delete(ws);
-        logger.debug({ clientCount: this.clients.size }, 'Web chat client disconnected');
+        logger.debug(
+          { clientCount: this.clients.size },
+          'Web chat client disconnected',
+        );
       });
     });
 
@@ -428,8 +450,7 @@ export class WebChannel implements Channel {
 
 registerChannel('web', (opts: ChannelOpts) => {
   const envVars = readEnvFile(['WEB_CHAT_PORT', 'WEB_CHAT_PASSWORD']);
-  const portStr =
-    process.env.WEB_CHAT_PORT || envVars.WEB_CHAT_PORT || '3002';
+  const portStr = process.env.WEB_CHAT_PORT || envVars.WEB_CHAT_PORT || '3002';
   const password =
     process.env.WEB_CHAT_PASSWORD || envVars.WEB_CHAT_PASSWORD || '';
   const port = parseInt(portStr, 10);
