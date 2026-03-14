@@ -82,21 +82,33 @@ import json, urllib.request, time
 WATCHLIST = ['NVDA', 'TSLA', 'AAPL', 'MSFT', 'META', 'AMZN', 'SPY', 'QQQ']
 
 def fetch_200wma(ticker):
-    url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1wk&range=5y'
+    url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1wk&range=10y'
     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
     with urllib.request.urlopen(req, timeout=10) as r:
         data = json.load(r)
     result = data['chart']['result'][0]
-    closes = result['indicators']['quote'][0]['close']
-    closes = [c for c in closes if c is not None]
-    current = closes[-1]
+    timestamps = result['timestamp']
+    raw_closes = result['indicators']['quote'][0]['close']
+    # Pair and strip nulls
+    rows = [(t, c) for t, c in zip(timestamps, raw_closes) if c is not None]
+    # Exclude current incomplete week: drop last candle if its Monday is this week
+    import datetime
+    now = datetime.datetime.utcnow()
+    last_ts = datetime.datetime.utcfromtimestamp(rows[-1][0])
+    # Same ISO week = incomplete candle still forming
+    if last_ts.isocalendar()[:2] == now.isocalendar()[:2]:
+        current = rows[-1][1]   # latest price (incomplete candle)
+        completed = rows[:-1]   # only use completed weeks for MA
+    else:
+        current = rows[-1][1]
+        completed = rows
+    closes = [r[1] for r in completed]
     if len(closes) >= 200:
         wma200 = sum(closes[-200:]) / 200
     else:
         wma200 = sum(closes) / len(closes)
     pct = (current - wma200) / wma200 * 100
-    weeks = len(closes)
-    return current, wma200, pct, weeks
+    return current, wma200, pct, len(closes)
 
 print(f'{"Ticker":<6}  {"Price":>8}  {"200W MA":>8}  {"vs 200W MA":>11}  {"Signal":<20}')
 print('-' * 65)
@@ -127,15 +139,22 @@ PYEOF
 ```bash
 TICKER=NVDA
 python3 - << 'PYEOF'
-import json, urllib.request
+import json, urllib.request, datetime
 ticker = 'NVDA'
-url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1wk&range=5y'
+url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1wk&range=10y'
 req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
 with urllib.request.urlopen(req) as r:
     data = json.load(r)
 result = data['chart']['result'][0]
-closes = [c for c in result['indicators']['quote'][0]['close'] if c is not None]
-current = closes[-1]
+timestamps = result['timestamp']
+raw = result['indicators']['quote'][0]['close']
+rows = [(t, c) for t, c in zip(timestamps, raw) if c is not None]
+# Exclude current incomplete week
+now = datetime.datetime.utcnow()
+last_dt = datetime.datetime.utcfromtimestamp(rows[-1][0])
+current = rows[-1][1]
+completed = rows[:-1] if last_dt.isocalendar()[:2] == now.isocalendar()[:2] else rows
+closes = [r[1] for r in completed]
 wma200 = sum(closes[-200:]) / 200 if len(closes) >= 200 else sum(closes) / len(closes)
 wma50  = sum(closes[-50:])  / 50  if len(closes) >= 50  else None
 wma20  = sum(closes[-20:])  / 20  if len(closes) >= 20  else None
@@ -149,7 +168,7 @@ if wma50:
 if wma20:
     pct20 = (current - wma20) / wma20 * 100
     print(f'  20-week MA    : ${wma20:.2f}  ({pct20:+.1f}%)')
-print(f'  Weeks of data : {len(closes)}')
+print(f'  Completed weeks used: {len(closes)}')
 PYEOF
 ```
 
