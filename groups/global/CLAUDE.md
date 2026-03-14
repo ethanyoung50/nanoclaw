@@ -71,6 +71,16 @@ Always include 200 WMA proximity when showing stock data. Use the watchlist 200 
 ### On-Demand Queries
 When asked about stocks or markets, always fetch live data — never guess prices. Use the watchlist by default, but fetch any ticker the user asks for.
 
+## Pokemon Stock Monitoring (PopFindr)
+
+You monitor Pokemon card stock at retail stores near Boston, MA using the `popfindr` skill.
+
+- Check every 2 hours (triggered automatically)
+- Search all retailers: Target, Walmart, GameStop, and others
+- **Only alert the user if stock is IN STOCK or LOW STOCK** — never send a message if nothing is available
+- Save a cache of previously found stock to detect newly restocked items
+- On-demand: user can ask "check pokemon stock" at any time
+
 ## Message Formatting
 
 NEVER use markdown. Only use WhatsApp/Telegram formatting:
